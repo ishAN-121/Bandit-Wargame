@@ -7,6 +7,7 @@
     echo "GPG installed"
   else
     echo "GPG not installed"
+    echo "Download GPG from https://gnupg.org/download/"
     exit 1
 fi
 
@@ -14,22 +15,35 @@ fi
     echo "Git is Installed"
 else
  echo "Git not Installed"
+ echo "For installation refer to https://git-scm.com/downloads"
  exit 1
 
 fi
+config(){
+  possiblegpgkey1=$(generate)
+  possiblegpgkey2=$1
+  if [ -z "$possiblegpgkey1" ]; then
+  gpgkey=$possiblegpgkey2
+  else 
+  gpgkey=$possiblegpgkey1
+  fi
+   git config --global --unset gpg.format
+  git config --global user.signingkey "$gpgkey"
+  git config --global commit.gpgsign true
+  gpg --armor --export $gpgkey
+  echo "Copy the public GPG key and paste in the github"
+
+
+}
 generate(){
   echo "Generating a new key ..."
   gpg --full-generate-key
   concatenatedkeys=$(gpg --list-secret-keys --keyid-format=long | awk '/sec/{print $2}' ) #gives us all the keys including rsa4069 separated by spaces
   keys=($(echo $concatenatedkeys)) #creates a array of keys including rsa
   pseudogpgkey=($(echo ${keys[-1]} | tr '/' ' ')) # last key conatins our new gpgid so removing / from that and creating array
-  gpgkey=${pseudogpgkey[1]} #gives us the gpgkeyid
-  git config --global --unset gpg.format
-  git config --global user.signingkey "$gpgkey"
-  git config --global commit.gpgsign true
-  gpg --armor --export $gpgkey
-
-}
+  gpgkeyid=${pseudogpgkey[1]} #gives us the gpgkeyid
+  echo $gpgkeyid
+ }
 
 gpgsetup(){
   if ! gpg --list-secret-keys --keyid-format=long | grep -q "sec" ; 
@@ -40,19 +54,9 @@ gpgsetup(){
   else
     
     gpg --list-secret-keys --keyid-format=long
-    echo "Copy the GPG key from sec and paste it"
+    echo "Copy the GPG key from sec after rsa4069 and before date and paste it "
     read key_id
-    git config --global --unset gpg.format
-    git config --global user.signingkey "$key_id"
-    echo "Enter your name"
-    read name
-    git config --global user.name "$name"
-    echo "Enter your email id"
-    read email
-    git config --global user.email "$email"
-    git config --global commit.gpgsign true
-    gpg --armor --export "$key_id"
-    echo "Copy the public GPG key and paste in the github"
+    config $key_id
 
 fi
 
