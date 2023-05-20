@@ -20,7 +20,15 @@ fi
 generate(){
   echo "Generating a new key ..."
   gpg --full-generate-key
-  gpgsetup
+  concatenatedkeys=$(gpg --list-secret-keys --keyid-format=long | awk '/sec/{print $2}' ) #gives us all the keys including rsa4069 separated by spaces
+  keys=($(echo $concatenatedkeys)) #creates a array of keys including rsa
+  pseudogpgkey=($(echo ${keys[-1]} | tr '/' ' ')) # last key conatins our new gpgid so removing / from that and creating array
+  gpgkey=${pseudogpgkey[1]} #gives us the gpgkeyid
+  git config --global --unset gpg.format
+  git config --global user.signingkey "$gpgkey"
+  git config --global commit.gpgsign true
+  gpg --armor --export $gpgkey
+
 }
 
 gpgsetup(){
@@ -34,6 +42,7 @@ gpgsetup(){
     gpg --list-secret-keys --keyid-format=long
     echo "Copy the GPG key from sec and paste it"
     read key_id
+    git config --global --unset gpg.format
     git config --global user.signingkey "$key_id"
     echo "Enter your name"
     read name
@@ -64,14 +73,14 @@ echo "Press 2 for creating a new GPG key"
 echo "Press 3 for deleting a GPG key"
 
 read input 
-if [ "$input" -eq 1]; then
+
+if [ "$input" -eq 1 ]; then
 gpgsetup
 
 elif [ "$input" -eq 2 ]; then
-
 generate
 
-elif ["$input" -eq 3]; then
+elif [ "$input" -eq 3 ]; then
 delete
 
 fi
