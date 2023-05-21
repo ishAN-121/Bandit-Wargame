@@ -1,4 +1,4 @@
-#! bin/bash 
+#! /bin/bash 
  echo "============================"
  echo "Welcome to Github Portal"
  echo "============================"
@@ -9,28 +9,22 @@ token=$GITHUB_TOKEN
 if [ -z "$token"]; then
 echo "Github token is not set.Enter your personal github access token "
 read -s token
+export GITHUB_TOKEN=$token
 fi
 
 if [ -z "$username"]; then
 echo "Github username is not set.Enter your github username"
 read username
+export GIT_USERNAME=$username
+
 fi
 echo "Enter Repository name "
 read reponame
-while ! [[ "$reponame" =~ ^[a-zA-Z0-9_]$ ]]
+while ! [[ "$reponame" =~ ^[a-zA-Z0-9_]+ ]]
 do
 echo "Wrong repo name.Enter again."
 read reponame
 done
-
-
-git config --global credential.helper store
-git config --global credential.https://github.com.username $username
-git config --global credential.https://github.com.password $token
-
-
-
-
 
 create_repo(){
 echo "Enter 1 for a public repo and 2 for a private repo"
@@ -43,15 +37,19 @@ repo_type=true
 fi
 echo "Enter description"
 read description
-check=$(curl -s https://api.github.com/repos/username/reponame | awk '/message/{print $2 $3}')
 
-if [ "$check" == *"NotFound"* ]; then
-echo "Repository already exists exiting ...."
-exit 1
-fi
+check=$( curl  -L -s -X POST -H "Authorization: Bearer $token" https://api.github.com/user/repos -d "{\"name\":\"$reponame\"}")
+echo "$check"
+
+if [[ "$check" == *'name already exists on this account'* ]]; then
+ echo "Repository already exists exiting ...."
+ exit 1
+ fi
 
 
-curl  -L -s -X POST H "Accept: application/vnd.github+json" -H "Authorization: Bearer $token" https://api.github.com/user/repos -d "{\"name\":\"$reponame\",\"description\":\"$description\",\"private\":\"$repo_type\"}" > /dev/null
+
+
+curl  -L -s -X POST H "Accept: application/vnd.github+json" -H "Authorization: Bearer $token" https://api.github.com/user/repos -d "{\"name\":\"$reponame\",\"description\":\"$description\",\"private\":$repo_type}" > /dev/null
 
 if [ $? -eq 0 ]; then
  echo "Repository created successfully!"
