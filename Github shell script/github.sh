@@ -38,10 +38,9 @@ fi
 echo "Enter description"
 read description
 
-check=$( curl  -L -s -X POST -H "Authorization: Bearer $token" https://api.github.com/user/repos -d "{\"name\":\"$reponame\"}")
-echo "$check"
+check=$(curl -s -H "Authorization: token $token"  --write-out "%{http_code}" -o /dev/null "https://api.github.com/user/repos" -d '{"name":"'$reponame'"}')
 
-if [[ "$check" == *'name already exists on this account'* ]]; then
+if [[ -"$check" != "200" ]]; then
  echo "Repository already exists exiting ...."
  exit 1
  fi
